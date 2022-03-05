@@ -1,8 +1,8 @@
 pipeline{
-    agent { label 'worker' } 
+    agent any
     options {
         buildDiscarder(logRotator(daysToKeepStr: '15'))
-        timeout(time: 1, unit: 'MINUTES')
+        timeout(time: 2, unit: 'MINUTES')
         retry(3)
         disableConcurrentBuilds()
     } 
@@ -11,15 +11,34 @@ pipeline{
         choice(name: 'OPERATION', choices: ['A','S','M','D'])
     }
     stages{
-        stage('Git Pull'){
+        stage('New Git Pull'){
+            when {
+            expression {
+                return env.BRANCH.startsWith('run');
+            }
+            }
+            input {
+                message "Can we proceed?"
+                ok "Yes"
+            }
             steps{
-                checkout scm
+                echo "git pull"
             }
         }
-        stage('Unit Testing'){
-            steps{
-                sh "echo doing unit testing"
-                sh "sleep 2"
+        stage('Parallel unit testing'){
+            parallel{
+                stage('Unit Testing  Linux'){
+                    steps{
+                        sh "echo doing unit testing"
+                        sh "sleep 20"
+                    }
+                }
+                stage('Unit Testing  Windows'){
+                    steps{
+                        sh "echo doing unit testing"
+                        sh "sleep 20"
+                    }
+                }
             }
         }
         stage('Docker Build'){
